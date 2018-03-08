@@ -182,7 +182,7 @@ int main(int argc, char** argv)
 		glm::mat4 model;
 		static float trans_x = 0.35, trans_y = -15, trans_z = -100.0;
 
-		model = glm::translate(model, glm::vec3(trans_x, trans_y, trans_z)); // 适当下调位置
+		model = glm::translate(model, glm::vec3(0,0, 0)); // 适当下调位置
 		//if (trans_y < -0.64)
 		//{
 		//	//trans_y += speed_land_y;
@@ -218,7 +218,7 @@ int main(int argc, char** argv)
 			1, GL_FALSE, glm::value_ptr(view));
 
 		glm::mat4 model_falcon;
-		static float fa_x = 0.0, fa_y = 0.0, fa_z = 0.0;
+		static float fa_x = 0.0, fa_y = 10.0, fa_z = 0.0;
 
 		model_falcon = glm::translate(model_falcon, glm::vec3(fa_x, fa_y, fa_z)); // 适当下调位置
 		//model_falcon = glm::scale(model_falcon, glm::vec3(0.03f, 0.03f, 0.03f)); // 适当缩小模型
