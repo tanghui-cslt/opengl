@@ -3,6 +3,7 @@
 #include <GLEW/glew.h>
 // 引入GLFW库
 #include <GLFW/glfw3.h>
+#include "SOIL/SOIL.h"
 #include <iostream>
 #include <vector>
 
@@ -62,44 +63,93 @@ int main(int argc, char** argv)
 
 	// Section1 准备顶点数据
 	// 指定顶点属性数据 顶点位置
-	GLfloat vertices[] = {
-		-0.5f, 0.0f, 0.0f,
-		0.5f, 0.0f, 0.0f,
-		0.0f, 0.5f, 0.0f
+	GLfloat vertices_color[] = {
+		-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,0.0f, 0.0f,  // 0
+		0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,1.0f, 0.0f,  // 1
+		0.5f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f,1.0f, 1.0f,  // 2
+		-0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f,0.0f, 1.0f   // 3
+	};
+	GLushort indices[] = {
+		0, 1, 2,  // 第一个三角形
+		0, 2, 3   // 第二个三角形
 	};
 	// 创建缓存对象
-	GLuint VAOId, VBOId;
+	GLuint VAOId, VBOId,EBOId;
 	// Step1: 创建并绑定VAO对象
 	glGenVertexArrays(1, &VAOId);
 	glBindVertexArray(VAOId);
 	// Step2: 创建并绑定VBO对象
 	glGenBuffers(1, &VBOId);
 	glBindBuffer(GL_ARRAY_BUFFER, VBOId);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_color), vertices_color, GL_STATIC_DRAW);
 	// Step3: 分配空间 传送数据
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &EBOId);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOId);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 	// Step4: 指定解析方式  并启用顶点属性
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GL_FLOAT), (GLvoid*)0);
+	
+
+	// 顶点位置属性
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+		8 * sizeof(GL_FLOAT), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
+	// 顶点颜色属性
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+		8 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GL_FLOAT)));
+	glEnableVertexAttribArray(1);
+	// 顶点纹理坐标
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
+		8 * sizeof(GL_FLOAT), (GLvoid*)(6 * sizeof(GL_FLOAT)));
+	glEnableVertexAttribArray(2);
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
 	// Section2 准备着色器程序
 	Shader shader("triangle.vertex", "triangle.frag");
 
+	// Section3 准备纹理对象
+	// Step1 创建并绑定纹理对象
+	GLuint textureId;
+	glGenTextures(1, &textureId);
+	glBindTexture(GL_TEXTURE_2D, textureId);
+	// Step2 设定wrap参数
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// Step3 设定filter参数
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+		GL_LINEAR_MIPMAP_LINEAR); 
+	// 为MipMap设定filter方法
+	// Step4 加载纹理
+	GLubyte *imageData = nullptr;
+	int picWidth, picHeight;
+	imageData = SOIL_load_image("wood.png", &picWidth, &picHeight, 0, SOIL_LOAD_RGB);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, picWidth, picHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, imageData);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	// Step5 释放纹理图片资源
+	SOIL_free_image_data(imageData);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
 	// 开始游戏主循环
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwPollEvents(); // 处理例如鼠标 键盘等事件
 
-		// 清除颜色缓冲区 重置为指定颜色
+						  // 清除颜色缓冲区 重置为指定颜色
 		glClearColor(0.18f, 0.04f, 0.14f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		// 这里填写场景绘制代码
 		glBindVertexArray(VAOId);
 		shader.use();
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-
+		// 启用纹理单元 绑定纹理对象
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textureId);
+		glUniform1i(glGetUniformLocation(shader.programId, "tex"), 0); // 设置纹理单元为0号
+																	   // 使用索引绘制
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 		glBindVertexArray(0);
 		glUseProgram(0);
 
